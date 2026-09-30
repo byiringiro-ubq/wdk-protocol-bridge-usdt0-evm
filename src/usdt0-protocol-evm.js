@@ -489,16 +489,14 @@ export default class Usdt0ProtocolEvm extends BridgeProtocol {
       throw new Error(`Erc-4337 account abstraction not supported on chain with id ${configuration.chainId}.`)
     }
 
-    for (const key of ['transactionValueHelper', 'xautTransactionValueHelper']) {
-      if (configuration[key]) {
-        const contract = new Contract(configuration[key], TRANSACTION_VALUE_HELPER_ABI, this._provider)
+    const contract = new Contract(configuration.transactionValueHelper, TRANSACTION_VALUE_HELPER_ABI, this._provider)
 
-        if ((await contract.token()).toLowerCase() === tokenAddress.toLowerCase()) {
-          return contract
-        }
-      }
+    const helperToken = await contract.token()
+
+    if (helperToken.toLowerCase() !== tokenAddress.toLowerCase()) {
+      throw new Error(`Erc-4337 bridging of token '${tokenAddress}' not supported on chain with id ${configuration.chainId}.`)
     }
 
-    throw new Error(`Erc-4337 bridging of token '${tokenAddress}' not supported on chain with id ${configuration.chainId}.`)
+    return contract
   }
 }
