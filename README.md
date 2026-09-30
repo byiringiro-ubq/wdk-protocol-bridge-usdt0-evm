@@ -2,15 +2,17 @@
 
 **Note**: This package is currently in beta. Please test thoroughly in development environments before using in production.
 
-A simple and secure package that lets EVM wallet accounts bridge [USDT0](https://usdt0.to/) tokens across different blockchains. This package provides a clean SDK for moving tokens between EVM-compatible chains using the LayerZero protocol and USDT0 bridge system with support for both standard wallets and ERC-4337 smart accounts.
+A bridge module for WDK (Wallet Development Kit) by Tether that lets EVM wallet accounts move [USD₮0](https://usdt0.to/) tokens across supported blockchains. This package provides a clean SDK for moving tokens between EVM-compatible chains using the LayerZero protocol and USD₮0 bridge system with support for both standard wallets and ERC-4337 smart accounts.
 
 This module can be managed by the [`@tetherto/wdk`](https://github.com/tetherto/wdk-core) package, which provides a unified interface for managing multiple WDK wallet and protocol modules across different blockchains.
 
+See the [module documentation](https://docs.wdk.tether.io/sdk/bridge-modules/bridge-usdt0-evm/).
+
 ## 🔍 About WDK
 
-This module is part of the [**WDK (Wallet Development Kit)**](https://wallet.tether.io/) project, which empowers developers to build secure, non-custodial wallets with unified blockchain access, stateless architecture, and complete user control. 
+This module is part of the [**WDK (Wallet Development Kit)**](https://wdk.tether.io/) project, which empowers developers to build secure, non-custodial wallets with unified blockchain access, stateless architecture, and complete user control.
 
-For detailed documentation about the complete WDK ecosystem, visit [docs.wallet.tether.io](https://docs.wallet.tether.io).
+For detailed documentation about the complete WDK ecosystem, visit [docs.wdk.tether.io](https://docs.wdk.tether.io/).
 
 ## 🌟 Features
 

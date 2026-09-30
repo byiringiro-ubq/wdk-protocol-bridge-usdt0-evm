@@ -1,7 +1,7 @@
 {
   "name": "@tetherto/wdk-protocol-bridge-usdt0-evm",
   "version": "1.0.0-beta.10",
-  "description": "A simple package that lets @tetherto/wdk-wallet-evm and wallet-evm-erc-4337 wallet accounts interact with the usdt0 protocol.",
+  "description": "USD₮0 bridge module for WDK (Wallet Development Kit) by Tether, for cross-chain transfers from EVM wallet accounts.",
   "keywords": [
     "wdk",
     "protocol",
@@ -72,5 +72,5 @@
   "bugs": {
     "url": "https://github.com/tetherto/wdk-protocol-bridge-usdt0-evm/issues"
   },
-  "homepage": "https://github.com/tetherto/wdk-protocol-bridge-usdt0-evm#readme"
+  "homepage": "https://docs.wdk.tether.io/sdk/bridge-modules/bridge-usdt0-evm/"
 }
