@@ -28,10 +28,6 @@ const ERC4337_WALLET_CONFIG = {
 
 const TOKEN = '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9'
 
-const XAUT_TOKEN = '0x40461291347e1eCbb09499F3371D3f17f10d7159'
-
-const XAUT_OFT = '0xf40542a7B66AD7C68C459EE3679635D2fDB6dF39'
-
 const USDT_MAINNET_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7'
 
 const SOLANA_ADDRESS = 'HyXJcgYpURfDhgzuyRL7zxP4FhLg7LZQMeDrR4MXZcMN'
@@ -575,6 +571,10 @@ describe('Usdt0ProtocolEvm', () => {
   })
 
   describe('with WalletAccountEvmErc4337', () => {
+    const XAUT_TOKEN = '0x40461291347e1eCbb09499F3371D3f17f10d7159'
+
+    const XAUT_OFT = '0xf40542a7B66AD7C68C459EE3679635D2fDB6dF39'
+
     beforeEach(() => {
       account = new WalletAccountEvmErc4337(SEED, "0'/0/0", ERC4337_WALLET_CONFIG)
 
@@ -734,7 +734,7 @@ describe('Usdt0ProtocolEvm', () => {
         expect(account.sendTransaction).toHaveBeenCalledWith([APPROVE_TRANSACTION.ERC4337, BRIDGE_TRANSACTION.ERC4337], undefined)
       })
 
-      test('should throw if the transaction value helper does not hold the bridged token', async () => {
+      test('should throw if the token cannot be bridged from erc-4337 accounts', async () => {
         tokenMock.mockResolvedValue(XAUT_TOKEN)
         helperTokenMock.mockResolvedValue(TOKEN)
 
@@ -865,7 +865,7 @@ describe('Usdt0ProtocolEvm', () => {
         expect(account.quoteSendTransaction).toHaveBeenCalledWith([APPROVE_TRANSACTION.ERC4337, BRIDGE_TRANSACTION.ERC4337], undefined)
       })
 
-      test('should throw if the transaction value helper does not hold the bridged token', async () => {
+      test('should throw if the token cannot be bridged from erc-4337 accounts', async () => {
         tokenMock.mockResolvedValue(XAUT_TOKEN)
         helperTokenMock.mockResolvedValue(TOKEN)
 
