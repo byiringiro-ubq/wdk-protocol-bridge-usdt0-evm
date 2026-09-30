@@ -6,8 +6,6 @@ import * as ethers from 'ethers'
 
 const { decodeBase58, zeroPadValue, toBeHex } = ethers
 
-import { ValueError } from '@tetherto/wdk-wallet'
-
 import { WalletAccountEvm, WalletAccountReadOnlyEvm } from '@tetherto/wdk-wallet-evm'
 
 import { WalletAccountEvmErc4337, WalletAccountReadOnlyEvmErc4337 } from '@tetherto/wdk-wallet-evm-erc-4337'
@@ -748,8 +746,7 @@ describe('Usdt0ProtocolEvm', () => {
           oftContractAddress: XAUT_OFT
         })
 
-        await expect(promise).rejects.toThrow(ValueError)
-        await expect(promise).rejects.toThrow(`Erc-4337 bridging of token '${XAUT_TOKEN}' not supported on chain with id 42161.`)
+        await expect(promise).rejects.toThrow(`Token '${XAUT_TOKEN}' cannot be bridged from erc-4337 accounts on chain with id 42161.`)
 
         expect(account.sendTransaction).not.toHaveBeenCalled()
       })
@@ -880,8 +877,7 @@ describe('Usdt0ProtocolEvm', () => {
           oftContractAddress: XAUT_OFT
         })
 
-        await expect(promise).rejects.toThrow(ValueError)
-        await expect(promise).rejects.toThrow(`Erc-4337 bridging of token '${XAUT_TOKEN}' not supported on chain with id 42161.`)
+        await expect(promise).rejects.toThrow(`Token '${XAUT_TOKEN}' cannot be bridged from erc-4337 accounts on chain with id 42161.`)
 
         expect(account.quoteSendTransaction).not.toHaveBeenCalled()
       })

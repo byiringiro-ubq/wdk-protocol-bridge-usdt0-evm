@@ -14,7 +14,6 @@
 
 'use strict'
 
-import { ValueError } from '@tetherto/wdk-wallet'
 import { BridgeProtocol } from '@tetherto/wdk-wallet/protocols'
 import { WalletAccountEvmErc4337, WalletAccountReadOnlyEvmErc4337 } from '@tetherto/wdk-wallet-evm-erc-4337'
 import { validateEVMAddress, validateSolanaAddress, validateTonAddress, validateTronAddress } from '@tetherto/wdk-utils'
@@ -129,7 +128,7 @@ export default class Usdt0ProtocolEvm extends BridgeProtocol {
    * @param {Partial<EvmErc4337WalletPaymasterTokenConfig | EvmErc4337WalletSponsorshipPolicyConfig | EvmErc4337WalletNativeCoinsConfig> & Pick<BridgeProtocolConfig, 'bridgeMaxFee'>} [config] - If
    *   the protocol has been initialized with an erc-4337 wallet account, it can be used to override its configuration options along with the 'bridgeMaxFee' option.
    * @returns {Promise<BridgeResult>} The bridge's result.
-   * @throws {ValueError} If the protocol has been initialized with an erc-4337 wallet account and the token cannot be bridged from it on the source chain.
+   * @throws {Error} If the protocol has been initialized with an erc-4337 wallet account and the token cannot be bridged from it on the source chain.
    */
   async bridge (options, config) {
     if (typeof this._account.sendTransaction !== 'function') {
@@ -180,7 +179,7 @@ export default class Usdt0ProtocolEvm extends BridgeProtocol {
    * @param {Partial<EvmErc4337WalletPaymasterTokenConfig | EvmErc4337WalletSponsorshipPolicyConfig | EvmErc4337WalletNativeCoinsConfig>} [config] - If the protocol has been initialized with
    *   an erc-4337 wallet account, it can be used to override its configuration options.
    * @returns {Promise<Omit<BridgeResult, 'hash'>>} The bridge's quotes.
-   * @throws {ValueError} If the protocol has been initialized with an erc-4337 wallet account and the token cannot be bridged from it on the source chain.
+   * @throws {Error} If the protocol has been initialized with an erc-4337 wallet account and the token cannot be bridged from it on the source chain.
    */
   async quoteBridge (options, config) {
     if (!this._provider) {
@@ -497,7 +496,7 @@ export default class Usdt0ProtocolEvm extends BridgeProtocol {
     const helperToken = await contract.token()
 
     if (helperToken.toLowerCase() !== tokenAddress.toLowerCase()) {
-      throw new ValueError(`Erc-4337 bridging of token '${tokenAddress}' not supported on chain with id ${configuration.chainId}.`)
+      throw new Error(`Token '${tokenAddress}' cannot be bridged from erc-4337 accounts on chain with id ${configuration.chainId}.`)
     }
 
     return contract
