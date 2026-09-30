@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, jest, test } from '@jest/globals'
+import { afterEach, beforeEach, describe, expect, jest, test } from '@jest/globals'
 
 import { addressToBytes32 } from '@layerzerolabs/lz-v2-utilities'
 
@@ -27,6 +27,14 @@ const ERC4337_WALLET_CONFIG = {
 }
 
 const TOKEN = '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9'
+
+const XAUT_TOKEN = '0x40461291347e1eCbb09499F3371D3f17f10d7159'
+
+const XAUT_OFT = '0xf40542a7B66AD7C68C459EE3679635D2fDB6dF39'
+
+const XAUT_TRANSACTION_VALUE_HELPER = '0x1111111111111111111111111111111111111111'
+
+const USDT_TRANSACTION_VALUE_HELPER = '0xa90f03c856D01F698E7071B393387cd75a8a319A'
 
 const USDT_MAINNET_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7'
 
@@ -147,6 +155,8 @@ const getNetworkMock = jest.fn()
 
 const tokenMock = jest.fn()
 
+const helperTokenMock = jest.fn()
+
 const quoteSendMock = jest.fn()
 
 jest.unstable_mockModule('ethers', () => ({
@@ -157,8 +167,14 @@ jest.unstable_mockModule('ethers', () => ({
   Contract: jest.fn().mockImplementation((target, abi, provider) => {
     const contract = new ethers.Contract(target, abi, provider)
 
-    if (abi === OFT_ABI || abi === TRANSACTION_VALUE_HELPER_ABI) {
+    if (abi === OFT_ABI) {
       contract.token = tokenMock
+
+      contract.quoteSend = quoteSendMock
+    }
+
+    if (abi === TRANSACTION_VALUE_HELPER_ABI) {
+      contract.token = () => helperTokenMock(target)
 
       contract.quoteSend = quoteSendMock
     }
@@ -168,6 +184,8 @@ jest.unstable_mockModule('ethers', () => ({
 }))
 
 const { default: Usdt0ProtocolEvm } = await import('../index.js')
+
+const { BLOCKCHAINS } = await import('../src/config.js')
 
 describe('Usdt0ProtocolEvm', () => {
   let account,
@@ -573,6 +591,10 @@ describe('Usdt0ProtocolEvm', () => {
       protocol = new Usdt0ProtocolEvm(account)
 
       getNetworkMock.mockResolvedValue({ chainId: 42_161n })
+
+      helperTokenMock.mockReset()
+
+      helperTokenMock.mockImplementation(() => tokenMock())
     })
 
     describe('bridge', () => {
@@ -589,6 +611,10 @@ describe('Usdt0ProtocolEvm', () => {
 
         account.sendTransaction = jest.fn()
           .mockResolvedValueOnce({ hash: 'dummy-user-operation-hash', fee: 12_345n })
+      })
+
+      afterEach(() => {
+        delete BLOCKCHAINS.arbitrum.xautTransactionValueHelper
       })
 
       test('should successfully perform a bridge operation', async () => {
@@ -718,6 +744,75 @@ describe('Usdt0ProtocolEvm', () => {
         expect(account.sendTransaction).toHaveBeenCalledWith([APPROVE_TRANSACTION.ERC4337, BRIDGE_TRANSACTION.ERC4337], undefined)
       })
 
+      test('should bridge through the transaction value helper that holds the bridged token', async () => {
+        BLOCKCHAINS.arbitrum.xautTransactionValueHelper = XAUT_TRANSACTION_VALUE_HELPER
+        tokenMock.mockResolvedValue(XAUT_TOKEN)
+        helperTokenMock.mockImplementation(async (target) => target === XAUT_TRANSACTION_VALUE_HELPER ? XAUT_TOKEN : TOKEN)
+
+        const result = await protocol.bridge({
+          targetChain: 'ethereum',
+          recipient: USER_ADDRESS,
+          token: XAUT_TOKEN,
+          amount: 100,
+          oftContractAddress: XAUT_OFT
+        })
+
+        const approveTransaction = {
+          to: XAUT_TOKEN,
+          value: 0,
+          data: new ethers.Interface(['function approve(address spender, uint256 amount)']).encodeFunctionData('approve', [XAUT_TRANSACTION_VALUE_HELPER, 11_980n])
+        }
+
+        const bridgeTransaction = {
+          to: XAUT_TRANSACTION_VALUE_HELPER,
+          value: 0,
+          data: new ethers.Interface(TRANSACTION_VALUE_HELPER_ABI).encodeFunctionData('send', [XAUT_OFT, SEND_PARAM.ERC4337, { nativeFee: 5_000n, lzTokenFee: 0 }])
+        }
+
+        expect(helperTokenMock).toHaveBeenCalledWith(USDT_TRANSACTION_VALUE_HELPER)
+        expect(helperTokenMock).toHaveBeenCalledWith(XAUT_TRANSACTION_VALUE_HELPER)
+
+        expect(account.sendTransaction).toHaveBeenCalledWith([approveTransaction, bridgeTransaction], undefined)
+
+        expect(result).toEqual({
+          hash: 'dummy-user-operation-hash',
+          fee: 12_345n,
+          bridgeFee: 5_000n
+        })
+      })
+
+      test('should keep bridging usdt0 through its own helper when an xaut helper is configured', async () => {
+        BLOCKCHAINS.arbitrum.xautTransactionValueHelper = XAUT_TRANSACTION_VALUE_HELPER
+        helperTokenMock.mockImplementation(async (target) => target === XAUT_TRANSACTION_VALUE_HELPER ? XAUT_TOKEN : TOKEN)
+
+        await protocol.bridge({
+          targetChain: 'ethereum',
+          recipient: USER_ADDRESS,
+          token: TOKEN,
+          amount: 100
+        })
+
+        expect(helperTokenMock).toHaveBeenCalledWith(USDT_TRANSACTION_VALUE_HELPER)
+        expect(helperTokenMock).not.toHaveBeenCalledWith(XAUT_TRANSACTION_VALUE_HELPER)
+        expect(account.sendTransaction).toHaveBeenCalledWith([APPROVE_TRANSACTION.ERC4337, BRIDGE_TRANSACTION.ERC4337], undefined)
+      })
+
+      test('should throw if no transaction value helper holds the bridged token', async () => {
+        tokenMock.mockResolvedValue(XAUT_TOKEN)
+        helperTokenMock.mockResolvedValue(TOKEN)
+
+        await expect(protocol.bridge({
+          targetChain: 'ethereum',
+          recipient: USER_ADDRESS,
+          token: XAUT_TOKEN,
+          amount: 100,
+          oftContractAddress: XAUT_OFT
+        })).rejects.toThrow(`Erc-4337 bridging of token '${XAUT_TOKEN}' not supported on chain with id 42161.`)
+
+        expect(helperTokenMock).toHaveBeenCalledWith(USDT_TRANSACTION_VALUE_HELPER)
+        expect(account.sendTransaction).not.toHaveBeenCalled()
+      })
+
       test('should throw if the bridge fee exceeds the bridge max fee configuration', async () => {
         const OPTIONS = {
           targetChain: 'ethereum',
@@ -830,6 +925,22 @@ describe('Usdt0ProtocolEvm', () => {
         expect(account.getAllowance).not.toHaveBeenCalled()
 
         expect(account.quoteSendTransaction).toHaveBeenCalledWith([APPROVE_TRANSACTION.ERC4337, BRIDGE_TRANSACTION.ERC4337], undefined)
+      })
+
+      test('should throw if no transaction value helper holds the bridged token', async () => {
+        tokenMock.mockResolvedValue(XAUT_TOKEN)
+        helperTokenMock.mockResolvedValue(TOKEN)
+
+        await expect(protocol.quoteBridge({
+          targetChain: 'ethereum',
+          recipient: USER_ADDRESS,
+          token: XAUT_TOKEN,
+          amount: 100,
+          oftContractAddress: XAUT_OFT
+        })).rejects.toThrow(`Erc-4337 bridging of token '${XAUT_TOKEN}' not supported on chain with id 42161.`)
+
+        expect(helperTokenMock).toHaveBeenCalledWith(USDT_TRANSACTION_VALUE_HELPER)
+        expect(account.quoteSendTransaction).not.toHaveBeenCalled()
       })
 
       test('should throw if the account is not connected to a provider', async () => {

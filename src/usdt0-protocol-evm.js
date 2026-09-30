@@ -314,7 +314,9 @@ export default class Usdt0ProtocolEvm extends BridgeProtocol {
     const sendParam = this._buildOftSendParam(targetChain, recipient, amount, dstEid)
 
     if (this._account instanceof WalletAccountReadOnlyEvmErc4337) {
-      const transactionValueHelper = await this._getTransactionValueHelperContract()
+      const tokenAddress = await oftContract.token()
+
+      const transactionValueHelper = await this._getTransactionValueHelperContract(tokenAddress)
 
       const { nativeFee, lzTokenFee } = await oftContract.quoteSend(sendParam, false)
 
@@ -327,8 +329,6 @@ export default class Usdt0ProtocolEvm extends BridgeProtocol {
       const tokenFee = totalBridgedAmount - amount
 
       const fee = { nativeFee, lzTokenFee: 0 }
-
-      const tokenAddress = await oftContract.token()
 
       const erc20Contract = new Contract(tokenAddress, ERC20_ABI, this._provider)
 
@@ -482,15 +482,23 @@ export default class Usdt0ProtocolEvm extends BridgeProtocol {
   }
 
   /** @private */
-  async _getTransactionValueHelperContract () {
+  async _getTransactionValueHelperContract (tokenAddress) {
     const configuration = await this._getSourceChainConfiguration()
 
     if (!configuration?.transactionValueHelper) {
       throw new Error(`Erc-4337 account abstraction not supported on chain with id ${configuration.chainId}.`)
     }
 
-    const contract = new Contract(configuration.transactionValueHelper, TRANSACTION_VALUE_HELPER_ABI, this._provider)
+    for (const key of ['transactionValueHelper', 'xautTransactionValueHelper']) {
+      if (configuration[key]) {
+        const contract = new Contract(configuration[key], TRANSACTION_VALUE_HELPER_ABI, this._provider)
 
-    return contract
+        if ((await contract.token()).toLowerCase() === tokenAddress.toLowerCase()) {
+          return contract
+        }
+      }
+    }
+
+    throw new Error(`Erc-4337 bridging of token '${tokenAddress}' not supported on chain with id ${configuration.chainId}.`)
   }
 }
